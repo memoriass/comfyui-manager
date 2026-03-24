@@ -69,4 +69,14 @@
 - remeber.exec.13 `label=ws|fact=added ws proxy router in backend|impact=can listen to comfyui ws events|next=done`
 - remeber.exec.14 `label=ui|fact=updated local models ui to match market|impact=looks much better with masonry grid|next=done`
 - remeber.exec.15 `label=ui|fact=added modal for model details|impact=clicking card shows local/market details|next=done`
-- remeber.summary `label=done|fact=WebSocket connection enabled and UI cards for local models added|impact=Features met the user's requirements|next=done`
+- commit=`Extract components` diff=`+500/-800` commands=`npm run build OK` evidence=`AdminDashboard.tsx L164`
+- remeber.exec.16 `label=refactor|fact=AdminDashboard split into 8 sub-components|impact=highly maintainable architecture|next=check backend`
+- remeber.exec.17 `label=ui|fact=PlaygroundPanel styled and typed|impact=isolated logic|next=check backend`
+- remeber.exec.18 `label=ui|fact=SettingsPanel moved to component|impact=isolated logic|next=check backend`
+- remeber.exec.19 `label=ui|fact=MarketPanel and WorkflowsPanel refactored|impact=cleaner codebase|next=check backend`
+- remeber.summary `label=done|fact=Frontend React component extraction completed successfully|impact=Code size reduced and modularity increased|next=done`
+- commit=`Fix WS Drawing Progress` diff=`+50/-20` commands=`ruff check && npm run build` evidence=`backend/routers/ws_router.py L85`
+- remeber.exec.20 `label=ws|fact=ws_router decoupled from /ws/tasks to /ws/draws|impact=model download ws no longer conflicts with comfyui ws|next=DrawLogsPanel`
+- remeber.exec.21 `label=ws|fact=added drawTasks state to Zustand|impact=frontend receives drawing progress separately from model downloads|next=DrawLogsPanel`
+- remeber.exec.22 `label=ui|fact=DrawLogsPanel connected to useStore().drawTasks|impact=shows real-time execution progress from ComfyUI|next=done`
+- remeber.summary `label=ws|fact=ComfyUI execution progress broadcasted to frontend|impact=Real-time draw logging is functional|next=local models ui`
