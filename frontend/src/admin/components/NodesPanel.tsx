@@ -1,36 +1,50 @@
 import axios from "axios";
 import { useStore } from "../../store";
+import { useState } from "react";
 
 export default function NodesPanel() {
   const { systemSettings, setSystemSettings } = useStore();
+  const [logsModal, setLogsModal] = useState({ open: false, nodeName: "", logs: "" });
 
-  const handleSaveAll = async () => {
-    let saveCount = 0;
-    const total = systemSettings.nodes?.filter((n: any) => n.id !== "local" && n.url.startsWith("http"))?.length || 0;
-
-    if (total === 0) {
-      alert("无远程节点需要保存");
+  const handleSaveNode = async (node: any) => {
+    if (!node.url.startsWith("http")) {
+      alert("URL 必须以 http 或 https 开头");
       return;
     }
     try {
-      for (const node of systemSettings.nodes) {
-        if (node.id.startsWith("local")) continue;
-        if (!node.url.startsWith("http")) continue;
-
-        await axios.post('/api/settings', { active_node_id: systemSettings.active_node_id });
-
-        if (node.id && node.id.length > 0 && node.id !== "local" && !isNaN(Number(node.id))) {
-          await axios.post('/api/nodes', {name: node.name, url: node.url, auth_type: node.auth_type, auth_credentials: node.auth_credentials});
-        } else {
-          await axios.put(`/api/nodes/${node.id}`, {name: node.name, url: node.url, auth_type: node.auth_type, auth_credentials: node.auth_credentials});
-        }
-        saveCount++;
+      if (node.id && node.id.length > 0 && node.type !== "local" && !isNaN(Number(node.id))) {
+        await axios.post('/api/nodes', {name: node.name, url: node.url, auth_type: node.auth_type, auth_credentials: node.auth_credentials});
+      } else {
+        await axios.put(`/api/nodes/${node.id}`, {name: node.name, url: node.url, auth_type: node.auth_type, auth_credentials: node.auth_credentials});
       }
       const res = await axios.get('/api/nodes');
       setSystemSettings({...systemSettings, nodes: res.data});
-      alert(`成功保存了 ${saveCount} 个节点配置!`);
+      alert(`节点 ${node.name} 保存成功!`);
     } catch (err) {
-      alert("保存节点遇到错误，部分可能未保存成功");
+      alert("保存节点遇到错误，可能未保存成功");
+    }
+  };
+
+  const handleViewLogs = async (node: any) => {
+    try {
+      const res = await axios.get(`/api/nodes/${node.id}/logs`);
+      setLogsModal({ open: true, nodeName: node.name, logs: res.data.logs });
+    } catch (err: any) {
+      alert("获取日志失败: " + (err.response?.data?.detail || err.message));
+    }
+  };
+
+  const handleDeleteNode = (node: any, index: number) => {
+    if (window.confirm("确定删除该节点？")) {
+       if (node.id && node.id.length > 0 && node.type !== "local" && isNaN(Number(node.id))) {
+          axios.delete(`/api/nodes/${node.id}`).catch(() => alert("服务端删除节点失败"));
+       }
+       const newNodes = systemSettings.nodes.filter((_: any, i: number) => i !== index);
+       setSystemSettings({
+         ...systemSettings,
+         nodes: newNodes,
+         active_node_id: systemSettings.active_node_id === node.id && newNodes.length > 0 ? newNodes[0].id : systemSettings.active_node_id
+       });
     }
   };
 
@@ -40,15 +54,6 @@ export default function NodesPanel() {
         <div>
           <h2 className="text-lg font-bold text-gray-800">节点管理</h2>
           <p className="text-gray-600 mt-1 text-sm">管理您的 ComfyUI 节点实例，您可以添加多个远程节点并分配不同参数。</p>
-        </div>
-        <div className="flex space-x-3">
-          <button
-            className="bg-blue-600 text-white px-5 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors shadow-sm flex items-center"
-            onClick={handleSaveAll}
-          >
-            <svg className="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" /></svg>
-            保存所有配置
-          </button>
         </div>
       </div>
 
@@ -127,33 +132,38 @@ export default function NodesPanel() {
                  </div>
                </div>
                <div className="p-4 pt-0 flex justify-between items-center mt-auto">
-                 <button
-                   className={`text-sm font-medium ${systemSettings.active_node_id === node.id ? 'text-gray-400 cursor-not-allowed' : 'text-blue-600 hover:text-blue-800'}`}
-                   disabled={systemSettings.active_node_id === node.id}
-                   onClick={() => {
-                     setSystemSettings({...systemSettings, active_node_id: node.id});
-                   }}
-                 >
-                   {systemSettings.active_node_id === node.id ? '已选中' : '设为激活节点'}
-                 </button>
-                 <button
-                   className="px-3 py-1.5 text-xs text-red-500 hover:text-red-700 hover:bg-red-50 rounded transition-colors"
-                   onClick={() => {
-                     if (window.confirm("确定删除该节点？")) {
-                        if (node.id && node.id.length > 0 && node.id !== "local" && isNaN(Number(node.id))) {
-                           axios.delete(`/api/nodes/${node.id}`).catch(() => alert("服务端删除节点失败"));
-                        }
-                        const newNodes = systemSettings.nodes.filter((_: any, i: number) => i !== index);
-                        setSystemSettings({
-                          ...systemSettings,
-                          nodes: newNodes,
-                          active_node_id: systemSettings.active_node_id === node.id && newNodes.length > 0 ? newNodes[0].id : systemSettings.active_node_id
-                        });
-                     }
-                   }}
-                 >
-                   删除
-                 </button>
+                 <div className="flex space-x-2">
+                   <button
+                     className={`text-sm font-medium ${systemSettings.active_node_id === node.id ? 'text-gray-400 cursor-not-allowed' : 'text-blue-600 hover:text-blue-800'}`}
+                     disabled={systemSettings.active_node_id === node.id}
+                     onClick={() => {
+                       setSystemSettings({...systemSettings, active_node_id: node.id});
+                       axios.post('/api/settings', { active_node_id: node.id }).catch(() => {});
+                     }}
+                   >
+                     {systemSettings.active_node_id === node.id ? '已选中' : '设为激活'}
+                   </button>
+                   <button
+                     className="px-3 py-1.5 text-xs text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded transition-colors"
+                     onClick={() => handleSaveNode(node)}
+                   >
+                     保存
+                   </button>
+                 </div>
+                 <div className="flex space-x-2">
+                   <button
+                     className="px-3 py-1.5 text-xs text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded transition-colors"
+                     onClick={() => handleViewLogs(node)}
+                   >
+                     运行日志
+                   </button>
+                   <button
+                     className="px-3 py-1.5 text-xs text-red-500 hover:text-red-700 hover:bg-red-50 rounded transition-colors"
+                     onClick={() => handleDeleteNode(node, index)}
+                   >
+                     删除
+                   </button>
+                 </div>
                </div>
              </div>
           ))}
@@ -195,6 +205,31 @@ export default function NodesPanel() {
              </div>
           </div>
        </div>
+
+      {logsModal.open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-gray-900 bg-opacity-50 backdrop-blur-sm" onClick={() => setLogsModal({ open: false, nodeName: "", logs: "" })}></div>
+          <div className="relative bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[80vh] flex flex-col">
+            <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50 rounded-t-xl">
+              <h3 className="font-bold text-gray-800 flex items-center">
+                <svg className="w-5 h-5 mr-2 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                {logsModal.nodeName} - 运行日志
+              </h3>
+              <button onClick={() => setLogsModal({ open: false, nodeName: "", logs: "" })} className="text-gray-400 hover:text-gray-600">
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+            </div>
+            <div className="p-4 flex-1 overflow-auto bg-gray-900 text-green-400 font-mono text-xs whitespace-pre-wrap">
+              {logsModal.logs}
+            </div>
+            <div className="p-3 border-t border-gray-100 bg-gray-50 flex justify-end rounded-b-xl">
+              <button onClick={() => setLogsModal({ open: false, nodeName: "", logs: "" })} className="px-4 py-1.5 bg-white border border-gray-300 rounded text-sm hover:bg-gray-50">
+                关闭
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

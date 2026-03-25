@@ -6,7 +6,7 @@ import uuid
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 from typing import Dict, Any
 
-from backend.services.database import fetchall
+from backend.services.database import fetchall, execute
 
 router = APIRouter(tags=["websocket"])
 
@@ -148,6 +148,37 @@ class ConnectionManager:
             await self.broadcast(
                 json.dumps({"type": "draw_progress", "data": tasks_list})
             )
+
+            task = self.task_cache[task_id]
+            try:
+                if task["status"] == "completed":
+                    execute(
+                        """
+                        UPDATE draw_logs
+                        SET status = ?, progress = ?, finished_at = CURRENT_TIMESTAMP,
+                            time_taken_ms = CAST((julianday(CURRENT_TIMESTAMP) - julianday(started_at)) * 86400000 AS INTEGER)
+                        WHERE task_id = ?
+                        """,
+                        ("completed", 100, task_id),
+                    )
+                elif task["status"] == "failed":
+                    execute(
+                        """
+                        UPDATE draw_logs
+                        SET status = ?, progress = ?, error_reason = ?, finished_at = CURRENT_TIMESTAMP,
+                            time_taken_ms = CAST((julianday(CURRENT_TIMESTAMP) - julianday(started_at)) * 86400000 AS INTEGER)
+                        WHERE task_id = ?
+                        """,
+                        ("failed", int(task.get("progress", 0)), "execution_error", task_id),
+                    )
+                else:
+                    execute(
+                        "UPDATE draw_logs SET status = ?, progress = ? WHERE task_id = ?",
+                        (task["status"], int(task.get("progress", 0)), task_id),
+                    )
+            except Exception as e:
+                logging.error(f"draw_logs sync failed for {task_id}: {e}")
+
 
 
 manager = ConnectionManager()

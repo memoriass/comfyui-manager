@@ -80,3 +80,20 @@
 - remeber.exec.21 `label=ws|fact=added drawTasks state to Zustand|impact=frontend receives drawing progress separately from model downloads|next=DrawLogsPanel`
 - remeber.exec.22 `label=ui|fact=DrawLogsPanel connected to useStore().drawTasks|impact=shows real-time execution progress from ComfyUI|next=done`
 - remeber.summary `label=ws|fact=ComfyUI execution progress broadcasted to frontend|impact=Real-time draw logging is functional|next=local models ui`
+- commit=Fix NodesPanel and LocalModelsPanel diff=+180/-120 commands=npm run build OK evidence=NodesPanel.tsx L50
+- remeber.exec.23 label=ui|fact=LocalModelsPanel now uses iframe to visit Civitai specific page directly|impact=fulfills requirement|next=nodes save fix
+- remeber.exec.24 label=fix|fact=NodesPanel lost config bug fixed|impact=UUID local node handled correctly without overwriting|next=nodes settings independent save
+- remeber.exec.25 label=ui|fact=Node card layout updated to ncqq style with independent save buttons|impact=independent settings save implemented|next=run logs
+- remeber.exec.26 label=backend|fact=added GET /api/nodes/{id}/logs|impact=can fetch recent run logs via ComfyUI history API|next=done
+- remeber.summary label=done|fact=Fixed all reported bugs and finished UI alignments including run logs integration|impact=App is robust and matches requested features|next=done
+
+- commit=`none` diff=`+248/-48` commands=`npm run build OK; python -m py_compile backend/routers/node_router.py OK` evidence=`PlaygroundPanel.tsx L24-L251; node_router.py L73-L105`
+- remeber.exec.27 `label=playground|fact=added workflow parameter parsing + form/json dual mode + preset loader|impact=workflow can be edited visually before send|next=real machine verify`
+- remeber.exec.28 `label=backend|fact=/api/generate accepts workflow_id and inserts draw_logs pending record using prompt_id|impact=draw task lifecycle now has db start record|next=join ws updates`
+- remeber.exec.29 `label=verify|fact=frontend build and backend py_compile passed|impact=current changes are build-safe|next=manual联调192.168.1.215:8188`
+
+- commit=`4a3b9bd` diff=`+180/-100` commands=`npm run build OK` evidence=`DrawLogsPanel.tsx L15-L50`
+- remeber.exec.30 `label=api|fact=added /api/draw_logs to node_router|impact=provides history logs|next=merge in frontend`
+- remeber.exec.31 `label=ws|fact=added draw_logs update in ws_router|impact=realtime logs are persisted|next=merge in frontend`
+- remeber.exec.32 `label=frontend|fact=merged realtime and history logs in DrawLogsPanel|impact=seamless user experience for realtime and history logs|next=done`
+- remeber.summary `label=complete|fact=DrawLogs lifecycle done|impact=can inspect drawing progress and history|next=next task`

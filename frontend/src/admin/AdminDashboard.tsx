@@ -17,7 +17,9 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     // 初始加载系统设置和节点配置
-    axios.get("/api/settings").then(res => setSystemSettings(res.data)).catch(console.error);
+    axios.get("/api/settings").then(res => {
+      setSystemSettings((prev: any) => ({ ...prev, ...res.data }));
+    }).catch(console.error);
     axios.get("/api/nodes").then(res => {
       setSystemSettings((prev: any) => ({...prev, nodes: res.data}));
     }).catch(console.error);
@@ -124,12 +126,14 @@ export default function AdminDashboard() {
         {/* 顶部 Header */}
         <header className="h-14 bg-white border-b border-gray-200 flex items-center justify-between px-6 shadow-sm z-10">
           <div className="flex items-center text-sm font-medium text-gray-600">
-            {activeTab === 'tasks' && "任务管理 / 下载任务"}
-            {activeTab === 'local' && "资源管理 / 本地模型"}
-            {activeTab === 'market' && "资源管理 / Civitai 市场"}
+            {activeTab === 'tasks' && "控制台 / 下载任务"}
             {activeTab === 'playground' && "控制台 / 绘图"}
             {activeTab === 'drawlogs' && "控制台 / 绘图日志"}
-            {activeTab === 'settings' && "设置 / 系统设置"}
+            {activeTab === 'local' && "资源管理 / 本地模型"}
+            {activeTab === 'market' && "资源管理 / Civitai 市场"}
+            {activeTab === 'workflows' && "资源管理 / 工作流模板"}
+            {activeTab === 'nodes' && "管理员 / 节点管理"}
+            {activeTab === 'settings' && "管理员 / 系统设置"}
           </div>
           <div className="flex items-center space-x-4">
             <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold text-sm">

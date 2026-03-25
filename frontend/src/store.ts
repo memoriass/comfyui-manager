@@ -8,8 +8,20 @@ interface DownloadTask {
   url: string
 }
 
-interface DrawTask {
+export interface DrawTask {
   task_id: string
+  id?: string
+  node_id?: string
+  node_name?: string
+  node_url?: string
+  workflow_id?: string
+  workflow_name?: string
+  prompt?: string
+  result_image_url?: string
+  error_reason?: string
+  started_at?: string
+  finished_at?: string
+  time_taken_ms?: number
   url: string
   status: string
   progress: number

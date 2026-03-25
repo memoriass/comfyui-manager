@@ -69,11 +69,108 @@ async def delete_node(node_id: str, current_user: dict = Depends(get_admin_user)
     db.execute("DELETE FROM nodes WHERE id = ?", (node_id,))
     return {"status": "ok"}
 
+@router.get("/draw_logs")
+async def get_draw_logs(
+    task_id: str = Query(""),
+    node_id: str = Query(""),
+    started_from: str = Query(""),
+    started_to: str = Query(""),
+    limit: int = Query(100, ge=1, le=500),
+    current_user: dict = Depends(get_current_user),
+):
+    where_clauses = []
+    params: List[Any] = []
+
+    if task_id:
+        where_clauses.append("d.task_id LIKE ?")
+        params.append(f"%{task_id}%")
+    if node_id:
+        where_clauses.append("d.node_id LIKE ?")
+        params.append(f"%{node_id}%")
+    if started_from:
+        where_clauses.append("date(d.started_at) >= date(?)")
+        params.append(started_from)
+    if started_to:
+        where_clauses.append("date(d.started_at) <= date(?)")
+        params.append(started_to)
+
+    where_sql = f"WHERE {' AND '.join(where_clauses)}" if where_clauses else ""
+    params.append(limit)
+
+    rows = db.fetchall(
+        f"""
+        SELECT
+            d.id,
+            d.task_id,
+            d.node_id,
+            d.workflow_id,
+            d.prompt,
+            d.status,
+            d.progress,
+            d.result_image_url,
+            d.error_reason,
+            d.started_at,
+            d.finished_at,
+            d.time_taken_ms,
+            n.name AS node_name,
+            n.url AS node_url,
+            w.name AS workflow_name
+        FROM draw_logs d
+        LEFT JOIN nodes n ON n.id = d.node_id
+        LEFT JOIN workflows w ON w.id = d.workflow_id
+        {where_sql}
+        ORDER BY d.started_at DESC
+        LIMIT ?
+        """,
+        tuple(params),
+    )
+
+    return [dict(r) for r in rows]
+
+
+@router.post("/draw_logs/sync")
+async def sync_draw_log(
+    task_id: str = Query(...),
+    status: str = Query(...),
+    progress: int = Query(0),
+    error_reason: str = Query(""),
+    result_image_url: str = Query(""),
+    current_user: dict = Depends(get_current_user),
+):
+    if status == "completed":
+        db.execute(
+            """
+            UPDATE draw_logs
+            SET status = ?, progress = ?, result_image_url = ?, finished_at = CURRENT_TIMESTAMP,
+                time_taken_ms = CAST((julianday(CURRENT_TIMESTAMP) - julianday(started_at)) * 86400000 AS INTEGER)
+            WHERE task_id = ?
+            """,
+            (status, 100 if progress <= 0 else progress, result_image_url, task_id),
+        )
+    elif status == "failed":
+        db.execute(
+            """
+            UPDATE draw_logs
+            SET status = ?, progress = ?, error_reason = ?, finished_at = CURRENT_TIMESTAMP,
+                time_taken_ms = CAST((julianday(CURRENT_TIMESTAMP) - julianday(started_at)) * 86400000 AS INTEGER)
+            WHERE task_id = ?
+            """,
+            (status, progress, error_reason, task_id),
+        )
+    else:
+        db.execute(
+            "UPDATE draw_logs SET status = ?, progress = ? WHERE task_id = ?",
+            (status, progress, task_id),
+        )
+
+    return {"status": "ok"}
+
 
 @router.post("/generate")
 async def generate_workflow(
     workflow: Dict[str, Any],
     node_id: str = Query(...),
+    workflow_id: str = Query(None),
     current_user: dict = Depends(get_current_user),
 ):
     row = db.fetchone("SELECT url FROM nodes WHERE id = ?", (node_id,))
@@ -82,13 +179,25 @@ async def generate_workflow(
 
     comfy_url = row["url"].rstrip("/")
     async with aiohttp.ClientSession() as session:
+
+
         try:
             async with session.post(
                 f"{comfy_url}/prompt", json={"prompt": workflow}
             ) as resp:
                 data = await resp.json()
                 if resp.status == 200:
-                    return {"status": "success", "prompt_id": data.get("prompt_id")}
+                    prompt_id = data.get("prompt_id")
+                    if prompt_id:
+                        try:
+                            local_id = str(uuid.uuid4())
+                            db.execute(
+                                "INSERT INTO draw_logs (id, task_id, node_id, workflow_id, status) VALUES (?, ?, ?, ?, ?)",
+                                (local_id, prompt_id, node_id, workflow_id or "", "pending")
+                            )
+                        except Exception as e:
+                            print(f"Failed to insert draw_logs: {e}")
+                    return {"status": "success", "prompt_id": prompt_id}
                 return {"status": "error", "message": data}
         except Exception as e:
             raise HTTPException(status_code=500, detail=str(e))
@@ -114,3 +223,27 @@ async def get_generate_status(
                 return {"status": "running or pending"}
         except Exception as e:
             raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/nodes/{node_id}/logs")
+async def get_node_logs(node_id: str, current_user: dict = Depends(get_admin_user)):
+    row = db.fetchone("SELECT url FROM nodes WHERE id = ?", (node_id,))
+    if not row:
+        raise HTTPException(status_code=404, detail="Node not found")
+
+    comfy_url = row["url"].rstrip("/")
+    async with aiohttp.ClientSession() as session:
+        try:
+            async with session.get(f"{comfy_url}/history") as resp:
+                data = await resp.json()
+                # Format the history as text logs
+                logs = f"--- Node {row['url']} Recent Run Logs ---\n"
+                count = 0
+                for prompt_id, item in list(data.items())[-20:]: # Last 20 items
+                    logs += f"[Task {prompt_id}]\n  Status: {'Completed with outputs' if 'outputs' in item else 'Failed/Unknown'}\n"
+                    count += 1
+                if count == 0:
+                    logs += "No recent tasks found on this node."
+                return {"logs": logs}
+        except Exception as e:
+            return {"logs": f"Failed to connect to node: {str(e)}\n\nPlease check if the node is running and the URL is correct."}

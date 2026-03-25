@@ -79,26 +79,39 @@ export default function LocalModelsPanel() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {localModels.map((m, idx) => (
-              <div key={idx} className="bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow flex flex-col group cursor-pointer" onClick={() => openModal(m)}>
+              <div key={idx} className="bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 flex flex-col overflow-hidden group cursor-pointer" onClick={() => openModal(m)}>
                 <div className="h-48 relative bg-gray-100 flex items-center justify-center overflow-hidden">
-                  <div className="text-gray-300">
-                    <svg className="w-16 h-16" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-                  </div>
-                  <span className="absolute top-2 left-2 bg-gray-900 bg-opacity-70 backdrop-blur-sm text-white text-[11px] font-medium px-2 py-1 rounded uppercase">
+                  {m.image_url ? (
+                    <img src={m.image_url} alt={m.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                  ) : (
+                    <div className="text-gray-300 flex flex-col items-center">
+                      <svg className="w-12 h-12 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                      <span className="text-xs">无预览图</span>
+                    </div>
+                  )}
+                  <span className="absolute top-2 left-2 bg-gray-900 bg-opacity-70 backdrop-blur-sm text-white text-[11px] font-bold px-2 py-1 rounded uppercase tracking-wider shadow-sm">
                     {m.type}
                   </span>
                   <span className="absolute top-2 right-2 bg-emerald-500 bg-opacity-90 backdrop-blur-sm text-white text-[10px] font-bold px-2 py-1 rounded-full shadow-sm">
                     {m.status === 'Ready' ? '已就绪' : m.status}
                   </span>
                 </div>
-                <div className="p-4 flex-1 flex flex-col">
-                  <h3 className="font-bold text-gray-800 text-sm truncate mb-1" title={m.name}>{m.name}</h3>
-                  <p className="text-xs text-gray-500 truncate mb-4 font-mono">{m.size_mb} MB</p>
-                  <div className="mt-auto flex justify-between items-center border-t border-gray-100 pt-3">
-                    <button className="text-blue-600 hover:text-blue-800 text-xs font-medium px-2 py-1 bg-blue-50 rounded hover:bg-blue-100 transition-colors">
+                <div className="p-5 flex-1 flex flex-col">
+                  <h3 className="font-bold text-gray-800 text-[15px] leading-snug line-clamp-2 mb-2 group-hover:text-blue-600 transition-colors" title={m.name}>{m.name}</h3>
+                  <div className="text-xs text-gray-500 mb-4 flex items-center justify-between">
+                    <span className="font-mono bg-gray-100 px-2 py-1 rounded text-[11px]">{m.size_mb} MB</span>
+                    {m.metadata?.version && (
+                      <span className="flex items-center text-gray-500">
+                        <svg className="w-3.5 h-3.5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>
+                        {m.metadata.version}
+                      </span>
+                    )}
+                  </div>
+                  <div className="mt-auto flex space-x-2">
+                    <button className="flex-1 py-2.5 bg-gray-50 border border-gray-200 hover:bg-gray-100 hover:border-gray-300 text-gray-700 rounded-lg text-[13px] font-bold transition-all shadow-sm">
                       查看元数据
                     </button>
-                    <button onClick={(e) => { e.stopPropagation(); handleDeleteLocal(m); }} className="text-gray-400 hover:text-red-500 font-medium transition-colors p-1.5 rounded-md hover:bg-red-50" title="删除">
+                    <button onClick={(e) => { e.stopPropagation(); handleDeleteLocal(m); }} className="w-10 flex items-center justify-center bg-red-50 border border-red-100 text-red-500 hover:bg-red-500 hover:text-white rounded-lg transition-colors" title="删除">
                       <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                     </button>
                   </div>
