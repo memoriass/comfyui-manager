@@ -15,6 +15,7 @@ class SettingsUpdate(BaseModel):
     admin_username: Optional[str] = None
     admin_password: Optional[str] = None
     active_node_id: Optional[str] = None
+    max_concurrent_downloads: Optional[int] = None
 
 
 @router.get("")
@@ -23,6 +24,7 @@ async def get_settings(current_user: dict = Depends(get_admin_user)):
         "models_dir": app_config.get("models_dir"),
         "civitai_api_key": app_config.get("civitai_api_key"),
         "http_proxy": app_config.get("http_proxy"),
+        "max_concurrent_downloads": app_config.get("max_concurrent_downloads"),
         "active_node_id": app_config.get("active_node_id"),
         "admin_username": current_user["userName"],
     }
@@ -40,6 +42,9 @@ async def update_settings(
         app_config.set("http_proxy", req.http_proxy)
     if req.active_node_id is not None:
         app_config.set("active_node_id", req.active_node_id)
+    if req.max_concurrent_downloads is not None:
+        from ..services.downloader import DownloadManager
+        DownloadManager.set_concurrency(req.max_concurrent_downloads)
 
     if req.admin_username and req.admin_password:
         user_manager.update_password(req.admin_username, req.admin_password)

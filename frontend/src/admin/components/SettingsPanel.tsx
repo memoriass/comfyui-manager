@@ -78,6 +78,20 @@ export default function SettingsPanel() {
           <p className="text-xs text-gray-500 mt-1">留空则不使用代理。适用于服务器无法直接访问 Civitai 的情况。</p>
         </div>
 
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">最大并发下载数</label>
+          <input
+            type="number"
+            min="1"
+            max="10"
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
+            placeholder="默认: 2"
+            value={systemSettings.max_concurrent_downloads || 2}
+            onChange={e => setSystemSettings({...systemSettings, max_concurrent_downloads: Number(e.target.value) || 2})}
+          />
+          <p className="text-xs text-gray-500 mt-1">控制同时进行下载的模型任务数量，超出的任务将处于“排队中”状态等待执行。</p>
+        </div>
+
         <div className="pt-4 border-t border-gray-100">
           <button
             onClick={handleSave}

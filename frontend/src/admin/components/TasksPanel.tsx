@@ -35,9 +35,10 @@ export default function TasksPanel() {
                 <td className="px-6 py-4">
                   <span className={`px-2.5 py-1 text-xs font-medium rounded-full ${
                     t.status === 'completed' ? 'bg-green-100 text-green-700' :
-                    t.status === 'downloading' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-700'
+                    t.status === 'downloading' ? 'bg-blue-100 text-blue-700' :
+                    t.status === 'pending' ? 'bg-amber-100 text-amber-700' : 'bg-gray-100 text-gray-700'
                   }`}>
-                    {t.status}
+                    {t.status === 'pending' ? '排队中' : t.status === 'downloading' ? '下载中' : t.status === 'completed' ? '已完成' : t.status.startsWith('failed') ? '失败' : t.status}
                   </span>
                 </td>
                 <td className="px-6 py-4">

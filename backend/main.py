@@ -34,6 +34,11 @@ async def startup_event():
     init_db()
     app_config.load_runtime_from_db()
 
+    # 根据配置初始化下载并发量
+    from backend.services.downloader import DownloadManager
+    max_concurrent = app_config.get("max_concurrent_downloads", 2)
+    DownloadManager.set_concurrency(max_concurrent)
+
 
 app.include_router(auth_router)
 app.include_router(settings_router)

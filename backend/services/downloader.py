@@ -13,7 +13,19 @@ logger = logging.getLogger(__name__)
 _tasks: Dict[str, Any] = {}
 
 class DownloadManager:
-    _semaphore = asyncio.Semaphore(3)
+    # 限制同时下载的任务数，其余任务会在 _queued_download 中 await 等待锁，保持 pending 状态
+    _semaphore = asyncio.Semaphore(2)  # 默认值，将在 startup 时由配置更新
+
+    @staticmethod
+    def set_concurrency(limit: int):
+        """动态修改并发限制"""
+        if limit < 1:
+            limit = 1
+        # Python 的 Semaphore 不支持直接修改 value，通常需要重新实例化
+        # 为了避免影响正在等待的任务，这里简单粗暴地替换
+        # 注意：这可能会导致短暂的并发控制失效，但在本场景下可以接受
+        DownloadManager._semaphore = asyncio.Semaphore(limit)
+        app_config.set("max_concurrent_downloads", limit)
 
     @staticmethod
     async def create_task(

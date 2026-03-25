@@ -58,7 +58,8 @@ export const useStore = create<StoreState>((set) => ({
     admin_username: "admin",
     admin_password: "adminpassword",
     civitai_api_key: "",
-    http_proxy: ""
+    http_proxy: "",
+    max_concurrent_downloads: 2
   },
   workflowJson: "{\n  // 在这里粘贴 ComfyUI 导出的 API 格式工作流 JSON\n}",
   setTasks: (tasks) => set({ tasks }),

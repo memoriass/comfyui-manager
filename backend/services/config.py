@@ -18,7 +18,7 @@ os.makedirs(DB_DIR, exist_ok=True)
 
 class AppConfig:
     _BOOTSTRAP_KEYS = {"initialized", "host", "port"}
-    _RUNTIME_KEYS = {"models_dir", "civitai_api_key", "http_proxy"}
+    _RUNTIME_KEYS = {"models_dir", "civitai_api_key", "http_proxy", "max_concurrent_downloads"}
 
     _BOOTSTRAP_DEFAULT = {
         "initialized": False,
@@ -30,6 +30,7 @@ class AppConfig:
         "models_dir": "C:/ComfyUI/models",
         "civitai_api_key": "",
         "http_proxy": "",
+        "max_concurrent_downloads": 2,
     }
 
     def __init__(self):
