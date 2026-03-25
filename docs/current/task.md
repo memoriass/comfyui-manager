@@ -97,3 +97,11 @@
 - remeber.exec.31 `label=ws|fact=added draw_logs update in ws_router|impact=realtime logs are persisted|next=merge in frontend`
 - remeber.exec.32 `label=frontend|fact=merged realtime and history logs in DrawLogsPanel|impact=seamless user experience for realtime and history logs|next=done`
 - remeber.summary `label=complete|fact=DrawLogs lifecycle done|impact=can inspect drawing progress and history|next=next task`
+- commit=`a46428b` diff=`+83/-7` commands=`npm run build OK` evidence=`NodesPanel.tsx; store.ts L41; PlaygroundPanel.tsx`
+- remeber.exec.33 `label=fix|fact=setSystemSettings accepts function in store.ts|impact=NodesPanel Add Node button works now|next=remote workflows`
+- remeber.exec.34 `label=feature|fact=added GET /nodes/{node_id}/workflows proxy|impact=can fetch remote node pysssss workflows|next=playground ui`
+- remeber.exec.35 `label=frontend|fact=PlaygroundPanel loads and groups remote workflows dynamically|impact=users can select remote node workflows directly in playground|next=done`
+- remeber.summary `label=nodes|fact=fixed add node and added remote workflow proxy|impact=Nodes management is robust and workflow selection is flexible|next=next task`
+
+
+
