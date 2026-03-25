@@ -28,6 +28,7 @@ export default function PlaygroundPanel() {
   const [selectedWorkflowId, setSelectedWorkflowId] = useState<string>("");
   const [parsedParams, setParsedParams] = useState<ParsedParams | null>(null);
   const [viewMode, setViewMode] = useState<'form' | 'json'>('json');
+  const [batchCount, setBatchCount] = useState<number>(1);
 
   const [remoteWorkflows, setRemoteWorkflows] = useState<string[]>([]);
 
@@ -121,11 +122,27 @@ export default function PlaygroundPanel() {
       }
 
       const targetUrl = `/api/generate?node_id=${systemSettings.active_node_id}${selectedWorkflowId ? `&workflow_id=${selectedWorkflowId}` : ''}`;
-      setPlaygroundResponse(`// 发送 POST ${targetUrl} ...\n`);
-      const res = await axios.post(targetUrl, finalJson);
-      setPlaygroundResponse(`// ${res.status} ${res.statusText}\n${JSON.stringify(res.data, null, 2)}`);
+
+      if (batchCount > 1) {
+        setPlaygroundResponse(`// 开始批量跑图，共发送 ${batchCount} 个任务到 POST ${targetUrl} ...\n`);
+        for (let i = 0; i < batchCount; i++) {
+            // Optional: modify seed per iteration to ensure variety if using fixed seed originally
+            if (viewMode === 'form' && parsedParams && parsedParams.samplerNodeId && finalJson[parsedParams.samplerNodeId]) {
+               // Use random seed for batch generation if the user sets batch>1
+               finalJson[parsedParams.samplerNodeId].inputs.seed = Math.floor(Math.random() * Number.MAX_SAFE_INTEGER);
+            }
+            await axios.post(targetUrl, finalJson);
+            setPlaygroundResponse(prev => prev + `// [${i+1}/${batchCount}] 任务发送成功\n`);
+            await new Promise(r => setTimeout(r, 500)); // Slight delay between submissions
+        }
+        setPlaygroundResponse(prev => prev + `// 批量跑图提交完毕\n`);
+      } else {
+        setPlaygroundResponse(`// 发送 POST ${targetUrl} ...\n`);
+        const res = await axios.post(targetUrl, finalJson);
+        setPlaygroundResponse(`// ${res.status} ${res.statusText}\n${JSON.stringify(res.data, null, 2)}`);
+      }
     } catch (err: any) {
-      setPlaygroundResponse(`// ERROR\n${JSON.stringify(err.response?.data || err.message, null, 2)}`);
+      setPlaygroundResponse(prev => prev + `// ERROR\n${JSON.stringify(err.response?.data || err.message, null, 2)}`);
     }
   };
 
@@ -199,6 +216,10 @@ export default function PlaygroundPanel() {
                    </optgroup>
                  )}
                </select>
+               <div className="flex items-center space-x-2 border border-gray-300 rounded-lg px-2 py-1.5 focus-within:ring-2 focus-within:ring-blue-500">
+                  <label className="text-xs font-semibold text-gray-500">执行次数:</label>
+                  <input type="number" min="1" max="100" value={batchCount} onChange={e => setBatchCount(Number(e.target.value) || 1)} className="w-12 text-sm bg-transparent focus:outline-none font-mono" title="连续投递任务数量" />
+               </div>
                <button
                  onClick={handleGenerate}
                  className="px-4 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors shadow-sm flex items-center text-sm">

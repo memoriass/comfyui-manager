@@ -6,6 +6,9 @@ interface DownloadTask {
   status: string
   progress: number
   url: string
+  downloaded_bytes?: number
+  total_bytes?: number
+  speed?: number
 }
 
 export interface DrawTask {

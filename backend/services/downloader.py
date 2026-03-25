@@ -3,6 +3,7 @@ import uuid
 import logging
 import os
 import aiohttp
+import time
 from typing import Dict, Any
 from .config import app_config
 
@@ -11,8 +12,9 @@ logger = logging.getLogger(__name__)
 # 真实的任务存储
 _tasks: Dict[str, Any] = {}
 
-
 class DownloadManager:
+    _semaphore = asyncio.Semaphore(3)
+
     @staticmethod
     async def create_task(
         model_id: str, url: str, metadata: Dict[str, Any] = None
@@ -23,12 +25,20 @@ class DownloadManager:
             "model_id": model_id,
             "status": "pending",
             "progress": 0.0,
+            "downloaded_bytes": 0,
+            "total_bytes": 0,
+            "speed": 0.0,
             "url": url,
             "metadata": metadata or {},
         }
-        # 后台启动异步下载
-        asyncio.create_task(DownloadManager._download_file(task_id))
+        # 后台启动异步下载，并用 Semaphore 限制并发
+        asyncio.create_task(DownloadManager._queued_download(task_id))
         return task_id
+
+    @staticmethod
+    async def _queued_download(task_id: str):
+        async with DownloadManager._semaphore:
+            await DownloadManager._download_file(task_id)
 
     @staticmethod
     def get_task(task_id: str) -> dict:
@@ -91,12 +101,26 @@ class DownloadManager:
                     downloaded_size = 0
                     chunk_size = 1024 * 1024  # 1MB chunks
 
+                    start_time = time.time()
+                    last_time = start_time
+                    last_downloaded = 0
+
                     with open(file_path, "wb") as f:
                         async for chunk in response.content.iter_chunked(chunk_size):
                             if not chunk:
                                 break
                             f.write(chunk)
                             downloaded_size += len(chunk)
+
+                            task["downloaded_bytes"] = downloaded_size
+                            task["total_bytes"] = total_size
+
+                            current_time = time.time()
+                            if current_time - last_time >= 0.5:
+                                task["speed"] = (downloaded_size - last_downloaded) / (current_time - last_time)
+                                last_time = current_time
+                                last_downloaded = downloaded_size
+
                             if total_size > 0:
                                 task["progress"] = round(
                                     (downloaded_size / total_size) * 100, 2
@@ -106,7 +130,9 @@ class DownloadManager:
 
             task["status"] = "completed"
             task["progress"] = 100.0
+            task["speed"] = 0.0
 
         except Exception as e:
             logger.error(f"Download failed for task {task_id}: {e}")
             task["status"] = f"failed: {str(e)}"
+            task["speed"] = 0.0

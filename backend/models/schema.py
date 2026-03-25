@@ -23,3 +23,6 @@ class DownloadTaskResponse(BaseModel):
     status: str
     model_id: str
     progress: float
+    downloaded_bytes: Optional[int] = 0
+    total_bytes: Optional[int] = 0
+    speed: Optional[float] = 0.0

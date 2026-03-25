@@ -33,6 +33,18 @@ export default function LocalModelsPanel() {
     }
   };
 
+  const handleSyncCivitai = async (model: any) => {
+    try {
+      setLoading(true);
+      await axios.post(`/api/local_models/${model.type}/${model.name}/sync`);
+      alert("同步C站元数据成功！");
+      fetchLocalModels();
+    } catch (err: any) {
+      alert("同步失败: " + (err.response?.data?.detail || err.message));
+      setLoading(false);
+    }
+  };
+
   const openModal = (data: any) => {
     setModalData(data);
     setModalOpen(true);
@@ -81,14 +93,23 @@ export default function LocalModelsPanel() {
             {localModels.map((m, idx) => (
               <div key={idx} className="bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 flex flex-col overflow-hidden group cursor-pointer" onClick={() => openModal(m)}>
                 <div className="h-48 relative bg-gray-100 flex items-center justify-center overflow-hidden">
-                  {m.image_url ? (
-                    <img src={m.image_url} alt={m.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-                  ) : (
-                    <div className="text-gray-300 flex flex-col items-center">
-                      <svg className="w-12 h-12 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-                      <span className="text-xs">无预览图</span>
-                    </div>
-                  )}
+                  <img src={`/api/local_models/${m.type}/${m.name}/preview`}
+                       onError={(e) => {
+                         // 尝试加载远程图片如果本地没有
+                         if (m.image_url && e.currentTarget.src !== m.image_url) {
+                            e.currentTarget.src = m.image_url;
+                         } else {
+                            e.currentTarget.style.display = 'none';
+                            e.currentTarget.nextElementSibling?.classList.remove('hidden');
+                         }
+                       }}
+                       alt={m.name}
+                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                  />
+                  <div className="hidden text-gray-300 flex flex-col items-center">
+                    <svg className="w-12 h-12 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                    <span className="text-xs">无预览图</span>
+                  </div>
                   <span className="absolute top-2 left-2 bg-gray-900 bg-opacity-70 backdrop-blur-sm text-white text-[11px] font-bold px-2 py-1 rounded uppercase tracking-wider shadow-sm">
                     {m.type}
                   </span>
@@ -108,8 +129,12 @@ export default function LocalModelsPanel() {
                     )}
                   </div>
                   <div className="mt-auto flex space-x-2">
+                    <button onClick={(e) => { e.stopPropagation(); handleSyncCivitai(m); }} className="flex-1 py-2.5 bg-blue-50 border border-blue-100 hover:bg-blue-100 hover:border-blue-200 text-blue-700 rounded-lg text-[13px] font-bold transition-all shadow-sm flex items-center justify-center" title="匹配C站元数据">
+                      <svg className="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                      同步
+                    </button>
                     <button className="flex-1 py-2.5 bg-gray-50 border border-gray-200 hover:bg-gray-100 hover:border-gray-300 text-gray-700 rounded-lg text-[13px] font-bold transition-all shadow-sm">
-                      查看元数据
+                      详情
                     </button>
                     <button onClick={(e) => { e.stopPropagation(); handleDeleteLocal(m); }} className="w-10 flex items-center justify-center bg-red-50 border border-red-100 text-red-500 hover:bg-red-500 hover:text-white rounded-lg transition-colors" title="删除">
                       <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>

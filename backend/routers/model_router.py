@@ -1,4 +1,4 @@
-import os
+import time
 import json
 import asyncio
 import aiohttp
@@ -185,6 +185,9 @@ async def start_download(
         status=task["status"],
         model_id=req.model_id,
         progress=task["progress"],
+        downloaded_bytes=task.get("downloaded_bytes", 0),
+        total_bytes=task.get("total_bytes", 0),
+        speed=task.get("speed", 0.0),
     )
 
 
@@ -204,3 +207,43 @@ async def websocket_endpoint(websocket: WebSocket):
             await asyncio.sleep(1)
     except WebSocketDisconnect:
         pass
+
+from ..services.civitai_sync import sync_model_from_civitai
+from ..services.log import logger
+
+@router.post("/local_models/{type}/{name}/sync")
+async def sync_local_model_civitai(
+    type: str, name: str, current_user: dict = Depends(get_current_user)
+):
+    models_dir_base = app_config.get("models_dir", "C:/ComfyUI/models")
+    models_dir = os.path.join(models_dir_base, type)
+    file_path = os.path.join(models_dir, name)
+
+    if not os.path.exists(file_path):
+        raise HTTPException(status_code=404, detail="Model file not found")
+
+    api_key = app_config.get("civitai_api_key")
+    proxy = app_config.get("http_proxy")
+
+    try:
+        metadata = await sync_model_from_civitai(file_path, proxy, api_key)
+        return {"status": "success", "message": "Metadata synced successfully", "data": metadata}
+    except Exception as e:
+        logger.error(f"Sync model failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+from fastapi.responses import FileResponse
+
+@router.get("/local_models/{type}/{name}/preview")
+async def get_local_model_preview(
+    type: str, name: str
+):
+    models_dir_base = app_config.get("models_dir", "C:/ComfyUI/models")
+    models_dir = os.path.join(models_dir_base, type)
+    base_name = os.path.splitext(name)[0]
+    preview_path = os.path.join(models_dir, f"{base_name}.preview.png")
+
+    if os.path.exists(preview_path):
+        return FileResponse(preview_path)
+    raise HTTPException(status_code=404, detail="Preview not found")
+
