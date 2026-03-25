@@ -147,7 +147,8 @@ pm run build; python -m py_compile evidence=downloader.py L15
          -   r e m e b e r . e x e c . 3 0   \ l a b e l = b a t c h | f a c t = A d d e d   P l a y g r o u n d   b a t c h   l o o p   s u p p o r t | i m p a c t = f r o n t e n d   a u t o   s u b m i t   m u l t i p l e   j o b s | n e x t = n o n e \ 
          -   r e m e b e r . e x e c . 3 1   \ l a b e l = d o w n l o a d e r | f a c t = A d d e d   a s y n c i o . S e m a p h o r e ( 3 )   l i m i t | i m p a c t = n o   I P   b a n   f r o m   c i v i t a i | n e x t = n o n e \ 
          -   r e m e b e r . e x e c . 3 2   \ l a b e l = s t a t s | f a c t = A d d e d   s p e e d   /   t o t a l _ b y t e s   t o   T a s k P a n e l | i m p a c t = u s e r   s e e s   d o w n l o a d   r a t e s | n e x t = d o n e \ 
-  
+ 
+ 
  \n- commit=`unknown` diff=`+200/-50` commands=`npm run build; python -m py_compile` evidence=`downloader.py L15`\n    - remeber.exec.30 `label=batch|fact=Added Playground batch loop support|impact=frontend auto submit multiple jobs|next=none`\n    - remeber.exec#1 `label=downloader|fact=Added asyncio.Semaphore(3) limit|impact=no IP ban from civitai|next=none`\n    - remeber.exec.32 `label=stats|fact=Added speed / total_bytes to TaskPanel|impact=user sees download rates|next=done`\n\n- commit=`unknown` diff=`+200/-50` commands=`npm run build; python -m py_compile` evidence=`downloader.py L15`\n    - remeber.exec.30 `label=batch|fact=Added Playground batch loop support|impact=frontend auto submit multiple jobs|next=none`\n    - remeber.exec#1 `label=downloader|fact=Added asyncio.Semaphore(3) limit|impact=no IP ban from civitai|next=none`\n    - remeber.exec.32 `label=stats|fact=Added speed / total_bytes to TaskPanel|impact=user sees download rates|next=done`\n
 - commit=`unknown` diff=`+200/-50` commands=`npm run build; python -m py_compile` evidence=`downloader.py L15`
     - remeber.exec.30 `label=batch|fact=Added Playground batch loop support|impact=frontend auto submit multiple jobs|next=none`
@@ -163,3 +164,8 @@ pm run build; python -m py_compile evidence=downloader.py L15
     - remeber.exec.30 `label=batch|fact=Added Playground batch loop support|impact=frontend auto submit multiple jobs|next=none`
     - remeber.exec.31 `label=downloader|fact=Added asyncio.Semaphore(3) limit|impact=no IP ban from civitai|next=none`
     - remeber.exec.32 `label=stats|fact=Added speed / total_bytes to TaskPanel|impact=user sees download rates|next=done`
+
+- commit=071ceb4 diff=+167/-5 commands=`npm run build && py_compile` evidence=`DownloadManager._semaphore`
+- remeber.exec.12 `label=backend|fact=semaphore dynamic swap|impact=download queue concurrency limits|next=none`
+- remeber.exec.13 `label=frontend|fact=pending state rendering|impact=ui handles queued items|next=none`
+- remeber.summary.1 `label=complete|fact=feature A implemented|impact=backend controls concurrent downloads perfectly|next=ready for next feature`
