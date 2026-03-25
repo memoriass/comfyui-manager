@@ -128,6 +128,45 @@ async def get_draw_logs(
     return [dict(r) for r in rows]
 
 
+
+@router.get("/nodes/{node_id}/workflows")
+async def get_node_workflows(node_id: str, current_user: dict = Depends(get_current_user)):
+    row = db.fetchone("SELECT url FROM nodes WHERE id = ?", (node_id,))
+    if not row:
+        raise HTTPException(status_code=404, detail="Node not found")
+
+    comfy_url = row["url"].rstrip("/")
+    async with aiohttp.ClientSession() as session:
+        try:
+            async with session.get(f"{comfy_url}/pysssss/workflows", timeout=5) as resp:
+                if resp.status == 200:
+                    data = await resp.json()
+                    return {"status": "success", "workflows": data}
+                else:
+                    return {"status": "success", "workflows": []}
+        except Exception as e:
+            return {"status": "success", "workflows": [], "error": str(e)}
+
+
+@router.get("/nodes/{node_id}/workflows/{name:path}")
+async def get_node_workflow_detail(node_id: str, name: str, current_user: dict = Depends(get_current_user)):
+    row = db.fetchone("SELECT url FROM nodes WHERE id = ?", (node_id,))
+    if not row:
+        raise HTTPException(status_code=404, detail="Node not found")
+
+    comfy_url = row["url"].rstrip("/")
+    import urllib.parse
+    encoded_name = urllib.parse.quote(name)
+    async with aiohttp.ClientSession() as session:
+        try:
+            async with session.get(f"{comfy_url}/pysssss/workflows/{encoded_name}", timeout=5) as resp:
+                if resp.status == 200:
+                    data = await resp.json()
+                    return data
+                else:
+                    raise HTTPException(status_code=resp.status, detail="Workflow not found on remote node")
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=str(e))
 @router.post("/draw_logs/sync")
 async def sync_draw_log(
     task_id: str = Query(...),

@@ -29,9 +29,19 @@ export default function PlaygroundPanel() {
   const [parsedParams, setParsedParams] = useState<ParsedParams | null>(null);
   const [viewMode, setViewMode] = useState<'form' | 'json'>('json');
 
+  const [remoteWorkflows, setRemoteWorkflows] = useState<string[]>([]);
+
   useEffect(() => {
     axios.get("/api/workflows").then(res => setWorkflows(res.data)).catch(() => {});
   }, []);
+
+  useEffect(() => {
+    if (systemSettings.active_node_id) {
+       axios.get(`/api/nodes/${systemSettings.active_node_id}/workflows`)
+         .then(res => setRemoteWorkflows(res.data.workflows || []))
+         .catch(() => setRemoteWorkflows([]));
+    }
+  }, [systemSettings.active_node_id]);
 
   useEffect(() => {
     try {
@@ -153,16 +163,41 @@ export default function PlaygroundPanel() {
              </div>
              <div className="flex space-x-2">
                <select
-                 className="text-sm border border-gray-300 rounded-lg px-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                 className="text-sm border border-gray-300 rounded-lg px-2 py-1.5 focus:ring-2 focus:ring-blue-500 focus:outline-none max-w-[200px]"
                  value={selectedWorkflowId}
                  onChange={(e) => {
-                   setSelectedWorkflowId(e.target.value);
-                   const wf = workflows.find(w => w.id === e.target.value);
-                   if (wf) setWorkflowJson(wf.json_data);
+                   const val = e.target.value;
+                   setSelectedWorkflowId(val);
+                   if (!val) return;
+
+                   if (val.startsWith("remote:")) {
+                      const wfName = val.replace("remote:", "");
+                      axios.get(`/api/nodes/${systemSettings.active_node_id}/workflows/${encodeURIComponent(wfName)}`)
+                        .then(res => {
+                            const jsonStr = typeof res.data === 'string' ? res.data : JSON.stringify(res.data, null, 2);
+                            setWorkflowJson(jsonStr);
+                        }).catch(() => alert("无法加载远端工作流"));
+                   } else {
+                      const wf = workflows.find(w => w.id === val);
+                      if (wf) setWorkflowJson(wf.json_data);
+                   }
                  }}
                >
                  <option value="">-- 加载工作流预设 --</option>
-                 {workflows.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
+                 {workflows.length > 0 && (
+                   <optgroup label="管理器保存的工作流">
+                     {workflows.map(wf => (
+                       <option key={wf.id} value={wf.id}>{wf.name}</option>
+                     ))}
+                   </optgroup>
+                 )}
+                 {remoteWorkflows.length > 0 && (
+                   <optgroup label="远端节点的工作流">
+                     {remoteWorkflows.map(wfName => (
+                       <option key={`remote:${wfName}`} value={`remote:${wfName}`}>{wfName}</option>
+                     ))}
+                   </optgroup>
+                 )}
                </select>
                <button
                  onClick={handleGenerate}

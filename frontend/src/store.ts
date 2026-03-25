@@ -38,7 +38,7 @@ interface StoreState {
   setDrawTasks: (tasks: DrawTask[]) => void
   setToken: (token: string | null) => void
   setUser: (user: any) => void
-  setSystemSettings: (settings: any) => void
+  setSystemSettings: (settings: any | ((prev: any) => any)) => void
   setWorkflowJson: (json: string) => void
   logout: () => void
 }
@@ -76,7 +76,9 @@ export const useStore = create<StoreState>((set) => ({
     }
     set({ user })
   },
-  setSystemSettings: (systemSettings) => set({ systemSettings }),
+  setSystemSettings: (settings) => set((state) => ({
+    systemSettings: typeof settings === 'function' ? settings(state.systemSettings) : settings
+  })),
   setWorkflowJson: (workflowJson) => set({ workflowJson }),
   logout: () => {
     localStorage.removeItem("token")
